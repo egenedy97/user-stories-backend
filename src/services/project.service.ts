@@ -1,5 +1,4 @@
 import { HttpException } from "../exceptions/HttpException";
-import jwt from "jsonwebtoken";
 import { prisma } from "../database";
 import { Project } from "@prisma/client";
 
