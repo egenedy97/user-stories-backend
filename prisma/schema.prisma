@@ -11,9 +11,60 @@ datasource db {
 }
 
 model User {
-  id       Int    @id @default(autoincrement())
-  email    String @unique
-  name     String
-  password String
-  username String @unique
+  id            Int           @id @default(autoincrement())
+  email         String        @unique
+  name          String
+  password      String
+  username      String        @unique
+  Task          Task[]        @relation("createdByUser")
+  updateTask    Task[]        @relation("updatedByUser")
+  assignedTasks Task[]        @relation("assignedToUser")
+  TaskHistory   TaskHistory[]
+  Project       Project[]     @relation("ProjectOfUser")
+}
+
+model Task {
+  id           Int           @id @default(autoincrement())
+  title        String
+  description  String
+  status       Status
+  createdBy    User          @relation("createdByUser", fields: [createdById], references: [id])
+  createdById  Int
+  createdAt    DateTime      @default(now())
+  updatedBy    User?         @relation("updatedByUser", fields: [updatedById], references: [id])
+  updatedById  Int?
+  updatedAt    DateTime      @updatedAt
+  project      Project       @relation(fields: [projectId], references: [id])
+  projectId    Int
+  history      TaskHistory[]
+  assignedto   User          @relation("assignedToUser", fields: [assignedToId], references: [id])
+  assignedToId Int
+}
+
+model Project {
+  id     Int    @id @default(autoincrement())
+  name   String
+  Task   Task[]
+  user   User   @relation("ProjectOfUser", fields: [userId], references: [id])
+  userId Int
+}
+
+model TaskHistory {
+  id             Int      @id @default(autoincrement())
+  taskId         Int
+  task           Task     @relation(fields: [taskId], references: [id])
+  previousStatus Status
+  nextStatus     Status
+  changedBy      User     @relation(fields: [changedById], references: [id])
+  changedById    Int
+  changeDateTime DateTime @default(now())
+}
+
+enum Status {
+  ToDo
+  InProgress
+  InQA
+  Done
+  Deployed
+  Blocked
 }
