@@ -43,7 +43,7 @@ model Task {
 
 model Project {
   id     Int    @id @default(autoincrement())
-  name   String
+  name   String @unique
   Task   Task[]
   user   User   @relation("ProjectOfUser", fields: [userId], references: [id])
   userId Int
