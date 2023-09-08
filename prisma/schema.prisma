@@ -37,8 +37,8 @@ model Task {
   project      Project       @relation(fields: [projectId], references: [id])
   projectId    Int
   history      TaskHistory[]
-  assignedto   User          @relation("assignedToUser", fields: [assignedToId], references: [id])
-  assignedToId Int
+  assignedto   User?         @relation("assignedToUser", fields: [assignedToId], references: [id])
+  assignedToId Int?
 }
 
 model Project {
