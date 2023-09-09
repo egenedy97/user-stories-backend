@@ -53,8 +53,8 @@ model TaskHistory {
   id             Int      @id @default(autoincrement())
   taskId         Int
   task           Task     @relation(fields: [taskId], references: [id])
-  previousStatus Status
-  nextStatus     Status
+  previousStatus Status?
+  currentStatus  Status   @default(ToDo)
   changedBy      User     @relation(fields: [changedById], references: [id])
   changedById    Int
   changeDateTime DateTime @default(now())
