@@ -34,6 +34,14 @@ class ProjectService {
       where: {
         id: projectId,
       },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
     });
 
     if (!project) {
