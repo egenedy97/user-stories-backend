@@ -14,15 +14,16 @@ class AuthService {
     username: string;
     password: string;
   }): Promise<User> {
-    const findUser: User = await this.users.findFirst({
+    const findUser: User | null = await this.users.findFirst({
       where: {
         OR: [{ email: userData.email }, { username: userData.username }],
       },
     });
+
     if (findUser)
       throw new HttpException(
         409,
-        `You're email ${userData.email} or username ${userData.username} already exists`
+        `Your email ${userData.email} or username ${userData.username} already exists`
       );
 
     const hashedPassword = await bcrypt.hash(userData.password, 10);
