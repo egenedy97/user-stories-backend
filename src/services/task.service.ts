@@ -147,47 +147,49 @@ class TaskService {
       assignedToId?: number;
     }
   ): Promise<Task> => {
-    try {
+    // Transactions
+    return prisma.$transaction(async (prisma) => {
       await this.validateProjectExistence(data.projectId);
+
       const task = await this.getTaskById(id);
+
       if (data.status) {
-        const validateTaskStatus = await this.validateStateFunction(
+        const validateTaskStatus = this.validateStateFunction(
           task.status,
           data.status
         );
         if (!validateTaskStatus) {
           throw new HttpException(
             403,
-            `invalid nextStatus according to stateTransitions with id ${id} for task`
+            `Invalid nextStatus according to stateTransitions with id ${id} for task`
           );
         }
       }
 
-      const updatedTask = await this.task.update({
+      const updatedTask = await prisma.task.update({
         where: {
           id: task.id,
         },
         data: {
-          status: data.status ? data?.status : undefined,
+          status: data.status ? data.status : undefined,
           updatedById: data.userId,
-          title: data.title ? data?.title : undefined,
-          description: data.description ? data?.description : undefined,
-          assignedToId: data.assignedToId ? data?.assignedToId : undefined,
+          title: data.title ? data.title : undefined,
+          description: data.description ? data.description : undefined,
+          assignedToId: data.assignedToId ? data.assignedToId : undefined,
         },
       });
+
       if (data.status) {
         await this.taskHistoryService.createTaskHistory({
           id: +updatedTask.id,
           status: updatedTask.status,
-          changedById: data?.userId,
+          changedById: data.userId,
           previousStatus: task.status,
         });
       }
 
       return updatedTask;
-    } catch (e) {
-      throw new HttpException(400, e);
-    }
+    });
   };
 
   private validateStateFunction = (prevStatus, currentStatus): boolean => {
