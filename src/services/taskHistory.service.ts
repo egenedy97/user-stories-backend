@@ -15,21 +15,22 @@ class TaskHistoryService {
       | "Done"
       | "Deployed"
       | "Blocked";
-
     changedById: number;
   }): Promise<TaskHistory> {
-    const createdTaskHistory: TaskHistory = await this.taskHistory.create({
-      data: {
-        taskId: +createdTask.id,
-        currentStatus: createdTask.status,
-        changedById: createdTask.changedById,
-        previousStatus: createdTask.previousStatus,
-      },
-    });
-    return createdTaskHistory;
+    try {
+      const createdTaskHistory: TaskHistory = await this.taskHistory.create({
+        data: {
+          taskId: +createdTask.id,
+          currentStatus: createdTask.status,
+          changedById: createdTask.changedById,
+          previousStatus: createdTask.previousStatus,
+        },
+      });
+      return createdTaskHistory;
+    } catch (error) {
+      throw new HttpException(500, "Unable to create task history");
+    }
   }
-
-  //   public async getTaskHistory();
 }
 
 export default TaskHistoryService;
