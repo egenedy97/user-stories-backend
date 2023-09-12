@@ -20,7 +20,7 @@ class TaskService {
   private async validateProjectExistence(projectId: number): Promise<void> {
     const project = await this.ProjectService.getProjectById(projectId);
     if (!project) {
-      throw new HttpException(404, `Project with id ${projectId} not found`);
+      throw new HttpException(404, `Project with id not found`);
     }
   }
 
@@ -155,8 +155,7 @@ class TaskService {
       throw new HttpException(404, `Task with id ${id} not found`);
     }
   }
-
-  public updateTaskService = async (
+  public async updateTaskService(
     id: number,
     taskData: {
       status?: "ToDo" | "InProgress" | "InQA" | "Done" | "Deployed" | "Blocked";
@@ -166,76 +165,52 @@ class TaskService {
       userId: number;
       assignedToId?: number;
     }
-  ): Promise<Task> => {
-    let updatedTask;
-
+  ): Promise<Task> {
     try {
+      await this.validateTaskData(taskData);
       await this.validateProjectExistence(taskData.projectId);
 
-      // Get the task
-
-      await prisma.$transaction(
+      const updatedTask = await prisma.$transaction(
         async (trx) => {
           const task = await trx.task.findUnique({
-            where: {
-              id,
+            where: { id },
+            include: {
+              createdBy: true,
+              updatedBy: true,
+              assignedto: true,
             },
           });
+
+          if (!task) {
+            throw new HttpException(404, `Task with id ${id} not found`);
+          }
 
           if (taskData.status) {
             const validateTaskStatus = this.validateStateFunction(
               task.status,
               taskData.status
             );
+
             if (!validateTaskStatus) {
               throw new HttpException(
                 403,
-                `Invalid nextStatus according to stateTransitions with id ${id} for task`
+                `Invalid nextStatus for task with id ${id}`
               );
             }
           }
-          updatedTask = await trx.task.update({
-            where: {
-              id: task.id,
-            },
+
+          const updatedTask = await trx.task.update({
+            where: { id: task.id },
             data: {
-              status: taskData.status ? taskData.status : undefined,
+              status: taskData.status ?? undefined,
               updatedById: taskData.userId,
-              title: taskData.title ? taskData.title : undefined,
-              description: taskData.description
-                ? taskData.description
-                : undefined,
-              assignedToId: taskData.assignedToId
-                ? taskData.assignedToId
-                : undefined,
-            },
-            include: {
-              createdBy: {
-                select: {
-                  id: true,
-                  username: true,
-                  name: true,
-                },
-              },
-              updatedBy: {
-                select: {
-                  id: true,
-                  username: true,
-                  name: true,
-                },
-              },
-              assignedto: {
-                select: {
-                  id: true,
-                  username: true,
-                  name: true,
-                },
-              },
+              title: taskData.title ?? undefined,
+              description: taskData.description ?? undefined,
+              assignedToId: taskData.assignedToId ?? undefined,
             },
           });
 
           if (taskData.status && task.status !== taskData.status) {
-            // Create task history
             await trx.taskHistory.create({
               data: {
                 taskId: +updatedTask.id,
@@ -245,17 +220,31 @@ class TaskService {
               },
             });
           }
+
+          return updatedTask;
         },
-        {
-          maxWait: 9000,
-          timeout: 10000,
-        }
+        { maxWait: 9000, timeout: 10000 }
       );
+
+      return updatedTask;
     } catch (e) {
-      throw new HttpException(404, `invalid Transactions in update Task`);
+      throw new HttpException(500, `Failed to update task with id ${id}`);
     }
-    return updatedTask;
-  };
+  }
+
+  private validateTaskData(taskData) {
+    if (!taskData) {
+      throw new HttpException(400, "taskData is not provided");
+    }
+
+    const requiredFields = ["projectId", "userId"];
+
+    for (const field of requiredFields) {
+      if (!taskData[field]) {
+        throw new HttpException(400, `${field} is not provided in taskData`);
+      }
+    }
+  }
 
   private validateStateFunction = (prevStatus, currentStatus): boolean => {
     if (this.stateTransitions.hasOwnProperty(prevStatus)) {
