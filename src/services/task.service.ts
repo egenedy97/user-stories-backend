@@ -48,6 +48,26 @@ class TaskService {
         createdById: taskData.createdById,
         projectId: taskData.projectId,
       },
+      include: {
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        updatedBy: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        assignedto: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
     });
     await this.taskHistoryService.createTaskHistory({
       id: +createdTask.id,
