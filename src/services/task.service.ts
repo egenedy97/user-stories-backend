@@ -113,7 +113,13 @@ class TaskService {
           },
         },
       });
-      const total = await this.task.count();
+      const total = await this.task.count({
+        where: {
+          projectId: {
+            equals: projectId,
+          },
+        },
+      });
       return { tasks, total };
     } catch (e) {
       throw new HttpException(500, "Unable to get Projects");
