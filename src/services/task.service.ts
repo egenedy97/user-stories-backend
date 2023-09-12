@@ -138,7 +138,7 @@ class TaskService {
 
   public updateTaskService = async (
     id: number,
-    data: {
+    taskData: {
       status?: "ToDo" | "InProgress" | "InQA" | "Done" | "Deployed" | "Blocked";
       title?: string;
       description?: string;
@@ -147,49 +147,94 @@ class TaskService {
       assignedToId?: number;
     }
   ): Promise<Task> => {
-    // Transactions
-    return prisma.$transaction(async (prisma) => {
-      await this.validateProjectExistence(data.projectId);
+    let updatedTask;
 
-      const task = await this.getTaskById(id);
+    try {
+      await this.validateProjectExistence(taskData.projectId);
 
-      if (data.status) {
-        const validateTaskStatus = this.validateStateFunction(
-          task.status,
-          data.status
-        );
-        if (!validateTaskStatus) {
-          throw new HttpException(
-            403,
-            `Invalid nextStatus according to stateTransitions with id ${id} for task`
-          );
+      // Get the task
+
+      await prisma.$transaction(
+        async (trx) => {
+          const task = await trx.task.findUnique({
+            where: {
+              id,
+            },
+          });
+
+          if (taskData.status) {
+            const validateTaskStatus = this.validateStateFunction(
+              task.status,
+              taskData.status
+            );
+            if (!validateTaskStatus) {
+              throw new HttpException(
+                403,
+                `Invalid nextStatus according to stateTransitions with id ${id} for task`
+              );
+            }
+          }
+          updatedTask = await trx.task.update({
+            where: {
+              id: task.id,
+            },
+            data: {
+              status: taskData.status ? taskData.status : undefined,
+              updatedById: taskData.userId,
+              title: taskData.title ? taskData.title : undefined,
+              description: taskData.description
+                ? taskData.description
+                : undefined,
+              assignedToId: taskData.assignedToId
+                ? taskData.assignedToId
+                : undefined,
+            },
+            include: {
+              createdBy: {
+                select: {
+                  id: true,
+                  username: true,
+                  name: true,
+                },
+              },
+              updatedBy: {
+                select: {
+                  id: true,
+                  username: true,
+                  name: true,
+                },
+              },
+              assignedto: {
+                select: {
+                  id: true,
+                  username: true,
+                  name: true,
+                },
+              },
+            },
+          });
+
+          if (taskData.status && task.status !== taskData.status) {
+            // Create task history
+            await trx.taskHistory.create({
+              data: {
+                taskId: +updatedTask.id,
+                currentStatus: taskData.status,
+                changedById: taskData.userId,
+                previousStatus: task.status,
+              },
+            });
+          }
+        },
+        {
+          maxWait: 9000,
+          timeout: 10000,
         }
-      }
-
-      const updatedTask = await prisma.task.update({
-        where: {
-          id: task.id,
-        },
-        data: {
-          status: data.status ? data.status : undefined,
-          updatedById: data.userId,
-          title: data.title ? data.title : undefined,
-          description: data.description ? data.description : undefined,
-          assignedToId: data.assignedToId ? data.assignedToId : undefined,
-        },
-      });
-
-      if (data.status) {
-        await this.taskHistoryService.createTaskHistory({
-          id: +updatedTask.id,
-          status: updatedTask.status,
-          changedById: data.userId,
-          previousStatus: task.status,
-        });
-      }
-
-      return updatedTask;
-    });
+      );
+    } catch (e) {
+      throw new HttpException(404, `invalid Transactions in update Task`);
+    }
+    return updatedTask;
   };
 
   private validateStateFunction = (prevStatus, currentStatus): boolean => {
