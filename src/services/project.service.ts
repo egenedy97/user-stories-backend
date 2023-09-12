@@ -64,7 +64,6 @@ class ProjectService {
       const total = await this.project.count();
       return { projects, total };
     } catch (e) {
-      console.log(e);
       throw new HttpException(500, "Unable to get Projects");
     }
   }
