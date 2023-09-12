@@ -208,6 +208,26 @@ class TaskService {
               description: taskData.description ?? undefined,
               assignedToId: taskData.assignedToId ?? undefined,
             },
+            include: {
+              createdBy: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+              updatedBy: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+              assignedto: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
           });
 
           if (taskData.status && task.status !== taskData.status) {
