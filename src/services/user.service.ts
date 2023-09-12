@@ -1,6 +1,5 @@
 import { HttpException } from "../exceptions/HttpException";
 import { prisma } from "../database";
-import { User } from "@prisma/client";
 
 class UserService {
   public users = prisma.user;
@@ -21,7 +20,6 @@ class UserService {
       const total = await this.users.count();
       return { users, total };
     } catch (e) {
-      console.log(e);
       throw new HttpException(500, "Unable to get Users");
     }
   }
