@@ -26,7 +26,7 @@ model User {
 model Task {
   id           Int           @id @default(autoincrement())
   title        String
-  description  String
+  description  String        @db.LongText
   status       Status
   createdBy    User          @relation("createdByUser", fields: [createdById], references: [id])
   createdById  Int
