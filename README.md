@@ -9,10 +9,14 @@ cd config
 
 touch .env.development
 ```
-write in .env.development 
+write in .env.development :
+
 NODE_ENV=example
+
 port=4000
+
 DATABASE_URL="mysql://root:your_root_password@localhost:3306/your_database_name"
+
 SECRET_KEY='_VOIS'
 
 ## To start Project 
