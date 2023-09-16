@@ -5,6 +5,8 @@ make dir config and add .env.development as .config example and keep port
 
 mkdir config
 
+cd config
+
 touch .env.development
 
 yarn
